@@ -14,7 +14,10 @@
 2. `com.cltv.fast` прошивка вмикала назад → `pm uninstall --user 0` (повернення: `cmd package install-existing com.cltv.fast`).
    Після ребута не повернувся.
 3. Лаунчер CleanYourTV + тема `theme/config.json` (док: Київстар ТБ, MEGOGO, SWEET.TV, YouTube; Live TV = tvcenter).
-4. `BootHomeService` увімкнено: при ввімкненні Live TV вискакує на ~1,8 с і ТВ сам іде на Home (перевірено ребутом).
+4. Live TV при ввімкненні прибрано ключем `power_on_home` (`HOME_KEY_SERVICE=1`, тема з `"power_on_home": true`),
+   https://github.com/Gathin23/cleanyourtv/pull/1445. Live TV вискакує на ~1,5 с і ТВ сам іде на Home.
+   Перевірено 2026-10-24: ребут, сон/пробудження, справжній пульт (Live TV, відкритий вручну, лишається).
+   До 24.10 тут стояла наша перша версія — окрема служба BootHomeService; її замінено.
 5. Netflix: фон обмежено (appops ignore, force-stop → stopped=true, прибрано з sys-whitelist). Працює при ручному запуску.
 6. Автооновлення Play Store вимкнено. Анімації 0.5.
 
@@ -35,4 +38,6 @@ devicelockcontroller; setupwraith — лише після «забути і пе
 ## Списки (для відкату — ОРИГІНАЛЬНІ шляхи)
 - `<CYT>\ergo-debloat.txt` → `restore.ps1 -TvHost <IP> <він> -Stock com.google.android.tvlauncher`
 - Тема: `<CYT>\ergo-theme` (копія — `theme/`). `<CYT>` — локальна копія CleanYourTV, точні шляхи в `LOCAL.md`.
-- Перевстановлення лаунчера: `build-and-install.ps1 -TvHost <IP> -BootHomeService`, потім `theme.ps1` з темою.
+- Перевстановлення лаунчера: збірка CleanYourTV з `power_on_home` (upstream, якщо #1445 злито, інакше з
+  `patches/power-on-home.patch`), `build-and-install.ps1 -TvHost <IP> -HomeKeyService`, потім `theme.ps1` з темою
+  (`theme/config.json` уже містить `"power_on_home": true`).

@@ -24,7 +24,7 @@
 - Changhong/Homwee (ERGO, RCA, CHiQ, realme, Aiwa…) при кожному ввімкненні відкривають Live TV
   (`com.mediatek.wwtv.tvcenter`, BootBroadcastReceiver) + «готельне» вікно `com.homwee.factory/
   com.gdch.hotel.ui.ProtocolActivity`. У меню опції немає (перевірено все меню Live TV і Налаштувань),
-  в інтернеті рішення немає. Рішення — `BootHomeService` нашого лаунчера (див. нижче).
+  в інтернеті рішення немає. Рішення — ключ `power_on_home` лаунчера CleanYourTV (див. нижче).
 - Скріншоти Live TV/HDMI порожні (захищений шар) — читай екран через `tools\ui.ps1` (uiautomator)
   або `dumpsys activity activities | grep topResumedActivity`.
 - Xiaomi Mi Box S: поки ввімкнено налагодження USB, USB-порт без живлення.
@@ -46,10 +46,13 @@
   Live TV = `com.mitv.livetv`); для інших пристроїв — тема.
 - JDK окремо не потрібен: `JAVA_HOME=C:\Program Files\Android\Android Studio\jbr`. SDK 34 Gradle
   докачує сам.
-- `BootHomeService` (наша доробка, у локальній копії, патч у `patches/`): ставиться з
-  `build-and-install.ps1 -BootHomeService`; хвилину після ввімкнення повертає з Live TV на Home,
-  вимикається після першої кнопки пульта. Після КОЖНОГО перевстановлення лаунчера прапорець
-  потрібен знову (Android вимикає служби доступності при перевстановленні).
+- **`power_on_home`** (наша доробка, запропонована в CleanYourTV: https://github.com/Gathin23/cleanyourtv/pull/1445;
+  поки не злито — `patches/power-on-home.patch`): ключ теми / `config.xml` + `HOME_KEY_SERVICE=1`
+  (`build-and-install.ps1 -HomeKeyService`). Коли прошивка сама відкриває Live TV (`live_tv_package`) при
+  завантаженні (3 хв) або після пробудження (60 с), `HomeKeyService` повертає на Home — до першої кнопки
+  пульта. Ігнорується з `boot_to_live_tv` або коли Live TV обрано в Open on start. Перевірено на ERGO:
+  ребут, сон/пробудження, справжній пульт (Live TV, відкритий вручну, лишається). Після КОЖНОГО
+  перевстановлення лаунчера `-HomeKeyService` потрібен знову. Замінив нашу першу версію BootHomeService.
 - Порядок плиток: затиснути OK на кнопці Settings → «Змінити порядок застосунків».
 - Кнопку Settings на пульті Google TV обробляв стоковий лаунчер; без нього вона мертва. Лікується
   службою доступності `HomeKeyService` (вже є в APK): `settings put secure enabled_accessibility_services

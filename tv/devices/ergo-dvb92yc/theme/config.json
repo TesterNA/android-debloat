@@ -6,5 +6,6 @@
     "com.google.android.youtube.tv"
   ],
   "hidden_apps": ["com.mediatek.wwtv.tvcenter"],
-  "live_tv_package": "com.mediatek.wwtv.tvcenter"
+  "live_tv_package": "com.mediatek.wwtv.tvcenter",
+  "power_on_home": true
 }

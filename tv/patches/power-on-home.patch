@@ -1,0 +1,275 @@
+diff --git a/PROMPT.md b/PROMPT.md
+index fd1ba797..f1784ead 100644
+--- a/PROMPT.md
++++ b/PROMPT.md
+@@ -156,6 +156,10 @@ Launcher
+   A button the TV logs as `KEY_UNKNOWN` or `KEY_PROGRAM` cannot be matched by keycode, since every
+   unmapped button shares it: read the scancode with `getevent -lt` and use `settings_key_scancodes`,
+   which only `config.xml` carries (a theme can set keycodes, not scancodes).
++- After the first reboot with the new Home, check what the TV opens at power-on
++  (`logcat -b events -d | grep wm_set_resumed_activity`). If the firmware puts the Live TV app on screen by
++  itself, ask me which I want to land on, Home or Live TV: Home is `power_on_home` with HOME_KEY_SERVICE=1,
++  Live TV is `boot_to_live_tv` (`config.xml` or the theme). Never set both.
+ - On Android 11 and newer the launcher must declare `<queries>` for `android.intent.category.LEANBACK_LAUNCHER`,
+   or package visibility silently hides every app and the grid comes up empty; target a recent SDK, some
+   Google TV 14 sets refuse older targets at install.
+diff --git a/docs/TROUBLESHOOTING.md b/docs/TROUBLESHOOTING.md
+index c0454b29..d86394cd 100644
+--- a/docs/TROUBLESHOOTING.md
++++ b/docs/TROUBLESHOOTING.md
+@@ -513,6 +513,17 @@ Things that bit us or contributors, so they don't bite you. Commands use `tools/
+   cannot know about, so after a big update compare `tools/tv.py 'pm list packages'` with the list
+   once by hand. On a TV whose list disables the updater, this only happens when you install an
+   update on purpose: enable the updater, update, `check.py --fix`, disable it again.
++- **The TV opens Live TV by itself at every power-on**, often on a "please scan channels" screen, with
++  the new launcher already Home: seen on an ERGO DVB92YC (Changhong AI PONT, `redwood`, MT5867,
++  Android TV 14, `UKNV.260514.001`). `logcat -b events -d | grep wm_set_resumed_activity` after a
++  reboot shows `com.mediatek.wwtv.tvcenter/.nav.TurnkeyUiMainActivity` resumed about 12 s in, a
++  Homwee "hotel" `ProtocolActivity` on top, then Live TV again at about 25 s. It is started by
++  `com.mediatek.wwtv.tvcenter/.util.BootBroadcastReceiver` (BOOT_COMPLETED, priority 1000); on
++  Android 14 `pm disable` of that one component is refused for the shell, and neither the Live TV menu
++  nor Android's Settings has a power-on-input option. Disabling the whole Live TV app would cost the
++  HDMI inputs. Set `power_on_home` (`config.xml` or a theme) with `HOME_KEY_SERVICE=1`: until the first
++  key press after boot or screen-on, `HomeKeyService` sends that Live TV window back to Home. Ask the
++  person first; someone who watches broadcast TV may want the opposite, `boot_to_live_tv`.
+ 
+ ## Accessibility helper enabled but the remote button does nothing
+ 
+diff --git a/docs/switches.md b/docs/switches.md
+index f0add43f..30746a9e 100644
+--- a/docs/switches.md
++++ b/docs/switches.md
+@@ -42,3 +42,4 @@ the rules. Keys from before this rule are on its wanted list; a screenshot for o
+ | `single_row` | <img src="switches/single_row.jpg" width="320" alt="single_row on a TV"> |
+ | `dock_band_all` | <img src="switches/single_row.jpg" width="320" alt="dock_band_all on a TV"> |
+ | `uniform_tiles` | <img src="switches/uniform_tiles.jpg" width="320" alt="uniform_tiles on a TV"> |
++| `power_on_home` | <img src="switches/power_on_home.jpg" width="320" alt="power_on_home on a TV"> |
+diff --git a/launcher/app/src/main/java/com/gathin/tvhome/Config.java b/launcher/app/src/main/java/com/gathin/tvhome/Config.java
+index 92f2ff9a..333338ca 100644
+--- a/launcher/app/src/main/java/com/gathin/tvhome/Config.java
++++ b/launcher/app/src/main/java/com/gathin/tvhome/Config.java
+@@ -154,6 +154,8 @@ final class Config {
+     final boolean consumeVolumeKeys;
+     /** Stock launcher whose home screen is sent back here if the firmware revives it (config.xml stock_home_redirect). */
+     final String stockHomeRedirect;
++    /** A Live TV window the firmware opens by itself at power-on is sent back to Home (power_on_home). */
++    final boolean powerOnHome;
+     /** The Settings button opens the quick settings panel instead of the TV's Settings (settings_key_panel). */
+     final boolean settingsKeyPanel;
+     /** Home puts the remote's accessibility helpers back after a force stop (restore_key_services; ServiceRepair). */
+@@ -250,7 +252,7 @@ final class Config {
+                    List<RaceWeekend.Race> raceCalendar, boolean cinematicHome, boolean ambientGlow, boolean appGlow, boolean fadeRows, int homeIdleClockMinutes,
+                    boolean keyFilter, boolean dockGlass, String glowStyle, boolean wallpaperCaptions,
+                    boolean handleViewInputs, boolean tileMenu, boolean dockEvenPadding, boolean cinematicDots, boolean cinematicWhiteFocus, boolean wifiStatusColor, int cinematicScrim, int cinematicArt,
+-                   Map<String, Set<String>> wallpaperMoods, boolean gamepadPassthrough, boolean consumeVolumeKeys, boolean wifiStatusWarnings, List<String> topBarApps, boolean showGreeting, boolean headerWhite, boolean clockWallpaper, int clockWallpaperDim, boolean clockGlow, String glassStyle, boolean singleRow, boolean dockBandAll, boolean lunarDate, int lunarUtcOffset) {
++                   Map<String, Set<String>> wallpaperMoods, boolean gamepadPassthrough, boolean consumeVolumeKeys, boolean powerOnHome, boolean wifiStatusWarnings, List<String> topBarApps, boolean showGreeting, boolean headerWhite, boolean clockWallpaper, int clockWallpaperDim, boolean clockGlow, String glassStyle, boolean singleRow, boolean dockBandAll, boolean lunarDate, int lunarUtcOffset) {
+         this.handleViewInputs = handleViewInputs;
+         this.tileMenu = tileMenu;
+         this.inputKeycodes = inputKeycodes;
+@@ -335,6 +337,7 @@ final class Config {
+         this.wallpaperMoods = wallpaperMoods;
+         this.gamepadPassthrough = gamepadPassthrough;
+         this.consumeVolumeKeys = consumeVolumeKeys;
++        this.powerOnHome = powerOnHome;
+         this.wifiStatusWarnings = wifiStatusWarnings;
+         this.topBarApps = Collections.unmodifiableList(topBarApps);
+         this.showGreeting = showGreeting;
+@@ -436,6 +439,7 @@ final class Config {
+         boolean keyFilter = res.getBoolean(R.bool.key_filter);
+         boolean gamepadPassthrough = res.getBoolean(R.bool.gamepad_passthrough);
+         boolean consumeVolumeKeys = res.getBoolean(R.bool.consume_volume_keys);
++        boolean powerOnHome = res.getBoolean(R.bool.power_on_home);
+         boolean dockGlass = res.getBoolean(R.bool.dock_glass);
+         boolean dockEvenPadding = res.getBoolean(R.bool.dock_even_padding);
+         boolean cinematicDots = res.getBoolean(R.bool.cinematic_dots);
+@@ -530,6 +534,7 @@ final class Config {
+             keyFilter = bool(json, "key_filter", keyFilter);
+             gamepadPassthrough = bool(json, "gamepad_passthrough", gamepadPassthrough);
+             consumeVolumeKeys = bool(json, "consume_volume_keys", consumeVolumeKeys);
++            powerOnHome = bool(json, "power_on_home", powerOnHome);
+             dockGlass = bool(json, "dock_glass", dockGlass);
+             dockEvenPadding = bool(json, "dock_even_padding", dockEvenPadding);
+             cinematicDots = bool(json, "cinematic_dots", cinematicDots);
+@@ -605,7 +610,7 @@ final class Config {
+                 Math.max(0, Math.min(100, skyIntensity)), settingsKeycodes, settingsKeyPanel, restoreKeyServices, wallpaperEnabled, wallpaper,
+                 wallpapers, rotationMinutes, wallpaperDim, dockOpacity, wallpaperOrder, applied,
+                 festival, inputKeycodes, appKeys, stockHomeRedirect, json == null ? Collections.emptyList() : raceCalendar(json), cinematic, ambientGlow, appGlow, fadeRows,
+-                Math.max(0, idleClockMinutes), keyFilter, dockGlass, glowStyle, wallpaperCaptions, handleViewInputs, tileMenu, dockEvenPadding, cinematicDots, cinematicWhiteFocus, wifiStatusColor, cinematicScrim, cinematicArt, wallpaperMoods, gamepadPassthrough, consumeVolumeKeys, wifiStatusWarnings, topBarApps, showGreeting, headerWhite, clockWallpaper, Math.max(0, Math.min(90, clockWallpaperDim)), clockGlow, glassStyle, singleRow && dockRow, dockBandAll, lunar, lunarOffset);
++                Math.max(0, idleClockMinutes), keyFilter, dockGlass, glowStyle, wallpaperCaptions, handleViewInputs, tileMenu, dockEvenPadding, cinematicDots, cinematicWhiteFocus, wifiStatusColor, cinematicScrim, cinematicArt, wallpaperMoods, gamepadPassthrough, consumeVolumeKeys, powerOnHome, wifiStatusWarnings, topBarApps, showGreeting, headerWhite, clockWallpaper, Math.max(0, Math.min(90, clockWallpaperDim)), clockGlow, glassStyle, singleRow && dockRow, dockBandAll, lunar, lunarOffset);
+     }
+ 
+     /**
+diff --git a/launcher/app/src/main/java/com/gathin/tvhome/HomeKeyService.java b/launcher/app/src/main/java/com/gathin/tvhome/HomeKeyService.java
+index f4f1e21c..7c4bbcc2 100644
+--- a/launcher/app/src/main/java/com/gathin/tvhome/HomeKeyService.java
++++ b/launcher/app/src/main/java/com/gathin/tvhome/HomeKeyService.java
+@@ -34,6 +34,9 @@ import java.util.Set;
+  * that launcher on again after it was disabled (XGIMI's xrmservice does, on its own remote keys), or that cannot be
+  * disabled at all, and a short press of Home opens this launcher even when the stock home is already on screen.
+  *
++ * With power_on_home set, a Live TV window (live_tv_package) that the firmware opens by itself at power-on is sent
++ * back here too, until the first key press after boot or after the screen turns on (Changhong / Homwee boards).
++ *
+  * Enable over adb:
+  *   settings put secure enabled_accessibility_services com.gathin.tvhome/.HomeKeyService
+  *   settings put secure accessibility_enabled 1
+@@ -58,6 +61,11 @@ public class HomeKeyService extends AccessibilityService {
+     private BroadcastReceiver unlockReceiver;
+     /** The stock launcher's HOME activities (stock_home_redirect), disabled ones included. */
+     private final Set<String> stockHome = new HashSet<>();
++    /** power_on_home: the Live TV package to send back to Home, empty when off; armed until this uptime or a key. */
++    private String powerOnLiveTv = "";
++    private long powerOnUntil;
++    /** power_on_home: re-arms after the screen turns on; null unless the key is on. */
++    private BroadcastReceiver screenOnReceiver;
+     /** Stops key filtering while a game controller is connected; null unless gamepad_passthrough and key_filter, or before the unlock. */
+     private GamepadPassthrough gamepads;
+ 
+@@ -97,6 +105,7 @@ public class HomeKeyService extends AccessibilityService {
+     @Override
+     public void onDestroy() {
+         stopWaitingForUnlock();
++        if (screenOnReceiver != null) unregisterReceiver(screenOnReceiver);
+         if (gamepads != null) gamepads.stop();
+         if (consumeVolumeKeys) VolumeKeys.stop();
+         super.onDestroy();
+@@ -122,13 +131,26 @@ public class HomeKeyService extends AccessibilityService {
+                 stockHome.add(ri.activityInfo.name);
+             }
+         }
+-        // home_key_service.xml subscribes to no events, so the redirect asks for window changes only when it is on.
++        // power_on_home, off by default. Not with boot_to_live_tv, or with Live TV picked as the Open on start app:
++        // those open Live TV on purpose at boot.
++        String openOnStart = config.openOnStartChoice
++                ? getSharedPreferences(Config.SETTINGS_NAME, MODE_PRIVATE).getString(OpenOnStart.KEY, "") : "";
++        powerOnLiveTv = config.powerOnHome && !config.bootToLiveTv && !config.liveTvPackage.equals(openOnStart)
++                ? config.liveTvPackage : "";
++        if (!powerOnLiveTv.isEmpty()) {
++            armPowerOnHome();
++        } else if (screenOnReceiver != null) {
++            unregisterReceiver(screenOnReceiver);
++            screenOnReceiver = null;
++            powerOnUntil = 0;
++        }
++        // home_key_service.xml subscribes to no events, so the redirects ask for window changes only when one is on.
+         AccessibilityServiceInfo info = getServiceInfo();
+-        if (info != null && !stockHome.isEmpty()) {
++        if (info != null && (!stockHome.isEmpty() || !powerOnLiveTv.isEmpty())) {
+             info.eventTypes |= AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED;
+             setServiceInfo(info);
+         }
+-        if (!stockHome.isEmpty()) probeAtBoot();
++        if (!stockHome.isEmpty() || !powerOnLiveTv.isEmpty()) probeAtBoot();
+         holdAppKeys = RemoteKeys.parseHoldAppKeys(config.appKeys);
+         holdAppScancodes = RemoteKeys.parseHoldAppScancodes(config.appKeys);
+         // gamepad_passthrough, off by default. Only with key_filter on: off, the service never filters keys.
+@@ -147,6 +169,11 @@ public class HomeKeyService extends AccessibilityService {
+ 
+     @Override
+     protected boolean onKeyEvent(KeyEvent event) {
++        // power_on_home: the first key after power-on hands the TV to the user (power and wake keys don't count).
++        if (powerOnUntil != 0 && event.getAction() == KeyEvent.ACTION_DOWN
++                && event.getKeyCode() != KeyEvent.KEYCODE_POWER && event.getKeyCode() != KeyEvent.KEYCODE_WAKEUP) {
++            powerOnUntil = 0;
++        }
+         if (consumeVolumeKeys && VolumeKeys.handle(this, event)) return true;
+         // A scancode entry is more specific than any keycode, so it goes first.
+         if (RemoteKeys.handle(this, event, appScancodes.get(event.getScanCode()),
+@@ -190,10 +217,35 @@ public class HomeKeyService extends AccessibilityService {
+ 
+     @Override
+     public void onAccessibilityEvent(AccessibilityEvent event) {
++        if (event.getEventType() != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return;
++        // power_on_home: the firmware opened Live TV by itself at power-on, before anyone pressed a key.
++        if (powerOnRedirect(powerOnLiveTv, event.getPackageName(), SystemClock.elapsedRealtime(), powerOnUntil)) {
++            openHome();
++            return;
++        }
+         // stock_home_redirect: the firmware turned the stock launcher back on and its home screen came up.
+-        if (stockHome.isEmpty() || event.getEventType() != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return;
+         CharSequence cls = event.getClassName();
+-        if (cls != null && stockHome.contains(cls.toString())) openHome();
++        if (!stockHome.isEmpty() && cls != null && stockHome.contains(cls.toString())) openHome();
++    }
++
++    /** How long power_on_home stays armed after the screen turns on without a reboot. */
++    static final long SCREEN_ON_WINDOW_MS = 60 * 1000L;
++
++    /** power_on_home: armed for the boot window (if this bind is part of the boot) and after every screen-on. */
++    private void armPowerOnHome() {
++        if (SystemClock.elapsedRealtime() < BOOT_WINDOW_MS) powerOnUntil = BOOT_WINDOW_MS;
++        if (screenOnReceiver != null) return;
++        screenOnReceiver = new BroadcastReceiver() {
++            @Override
++            public void onReceive(Context context, Intent intent) {
++                powerOnUntil = SystemClock.elapsedRealtime() + SCREEN_ON_WINDOW_MS;
++            }
++        };
++        registerReceiver(screenOnReceiver, new IntentFilter(Intent.ACTION_SCREEN_ON));
++    }
++
++    static boolean powerOnRedirect(String liveTv, CharSequence pkg, long now, long armedUntil) {
++        return !liveTv.isEmpty() && pkg != null && liveTv.contentEquals(pkg) && now < armedUntil;
+     }
+ 
+     /** How long after boot the first bind still counts as "at boot" for probeAtBoot. */
+diff --git a/launcher/app/src/main/res/values/config.xml b/launcher/app/src/main/res/values/config.xml
+index 8dbd32be..74afad79 100644
+--- a/launcher/app/src/main/res/values/config.xml
++++ b/launcher/app/src/main/res/values/config.xml
+@@ -197,6 +197,14 @@
+          straight back here. A theme's config.json can set it too. Leave empty to omit. -->
+     <string name="stock_home_redirect" translatable="false"></string>
+ 
++    <!-- For TVs whose firmware opens the Live TV app (live_tv_package) by itself at every power-on, with no setting
++         to change it (Changhong / Homwee boards start com.mediatek.wwtv.tvcenter from its own boot receiver, which
++         adb cannot disable on Android 14). While nobody has pressed a key yet after boot or after the screen turns
++         on, HomeKeyService (HOME_KEY_SERVICE=1) sends a Live TV window back to Home; the first key hands control
++         to the user, so opening Live TV on purpose is never undone. The opposite of boot_to_live_tv, and ignored
++         when that is on. A theme's config.json can set it too. Off by default. -->
++    <bool name="power_on_home">false</bool>
++
+     <!-- Show the Solar Hijri (Shamsi) date used in Iran and Afghanistan, e.g. "27 Mehr 1405", above the
+          Gregorian date. -->
+     <bool name="shamsi_date">false</bool>
+diff --git a/launcher/app/src/test/java/com/gathin/tvhome/HomeKeyServiceTest.java b/launcher/app/src/test/java/com/gathin/tvhome/HomeKeyServiceTest.java
+index 3b5700da..e5ffc0c7 100644
+--- a/launcher/app/src/test/java/com/gathin/tvhome/HomeKeyServiceTest.java
++++ b/launcher/app/src/test/java/com/gathin/tvhome/HomeKeyServiceTest.java
+@@ -32,4 +32,24 @@ public class HomeKeyServiceTest {
+     @Test public void noBootCountMeansNoProbe() {
+         assertFalse(HomeKeyService.firstBindAfterBoot(-1, -1, SOON));
+     }
++
++    private static final String TV = "com.mediatek.wwtv.tvcenter";
++
++    @Test public void liveTvBeforeAnyKeyGoesHome() {
++        assertTrue(HomeKeyService.powerOnRedirect(TV, TV, SOON, HomeKeyService.BOOT_WINDOW_MS));
++    }
++
++    @Test public void otherAppsAndInputsAreLeftAlone() {
++        assertFalse(HomeKeyService.powerOnRedirect(TV, "com.netflix.ninja", SOON, HomeKeyService.BOOT_WINDOW_MS));
++        assertFalse(HomeKeyService.powerOnRedirect(TV, null, SOON, HomeKeyService.BOOT_WINDOW_MS));
++    }
++
++    @Test public void afterAKeyOrTheWindowLiveTvStays() {
++        assertFalse(HomeKeyService.powerOnRedirect(TV, TV, SOON, 0));
++        assertFalse(HomeKeyService.powerOnRedirect(TV, TV, HomeKeyService.BOOT_WINDOW_MS, HomeKeyService.BOOT_WINDOW_MS));
++    }
++
++    @Test public void offMeansNothing() {
++        assertFalse(HomeKeyService.powerOnRedirect("", TV, SOON, HomeKeyService.BOOT_WINDOW_MS));
++    }
+ }
+diff --git a/themes/README.md b/themes/README.md
+index a4c5310c..152ae7c5 100644
+--- a/themes/README.md
++++ b/themes/README.md
+@@ -117,6 +117,7 @@ A new key needs one there in the same pull request.
+ | `gamepad_passthrough` | bool | `true` makes the key helpers stop filtering keys while a game controller is connected, so games see its buttons (Steam Link with an Xbox controller); the remote buttons above do nothing until it disconnects. Needs `key_filter` on. A voice remote that reports a joystick does not count. Off by default |
+ | `consume_volume_keys` | bool | `true` makes the key helpers swallow Volume Up/Down and repeat a held one themselves (after 500 ms, every 60 ms). Use it on firmware that applies a volume key both before the helper and when the helper hands it back, so one tap moves two steps (TCL G03 / BeyondTV4, Android 11, #1100). Needs `key_filter` on. Off by default |
+ | `stock_home_redirect` | string | Stock launcher package; if the firmware turns it back on (XGIMI), its home screen is sent straight back here (`HOME_KEY_SERVICE=1`) |
++| `power_on_home` | bool | For firmware that opens the Live TV app (`live_tv_package`) by itself at every power-on (Changhong / Homwee): until the first key press after boot or screen-on, that Live TV window is sent back to Home (`HOME_KEY_SERVICE=1`). Ignored with `boot_to_live_tv`, or with Live TV as the Open on start app. Off by default |
+ | `race_calendar` | list of races | F1 race-weekend mode: from 12 hours before a weekend's first session until 4 hours after the race starts, a panel under the clock shows the next session with a countdown (or the live one) and the weekend's session times in the TV's time zone. Write it with `tools/race_calendar.py <theme folder>`, which fetches the season from the free Jolpica API; the launcher itself never goes online |
+ | `home_idle_clock_minutes` | 0 to 1440 | Minutes Home may sit untouched before it shows the clock screensaver (a thin clock and date drifting over a slow glow, as the system "Clock" screensaver does). Any key returns to Home. It starts only from Home, never over Live TV or an app; 0 is off (default) |
+ | `clock_wallpaper` | bool | The clock screensaver over Home's wallpaper instead of black with a coloured glow; the clock still moves every minute (`false` by default) |

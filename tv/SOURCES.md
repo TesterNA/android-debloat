@@ -37,4 +37,6 @@
   Haier, Hitachi, ERGO) — шукай за `ro.product.device` і версією прошивки.
 
 ## Що вже перевіряли і не знайшли
-- Спосіб прибрати автостарт Live TV на Changhong/Homwee без root (2026-10) — лише наш BootHomeService.
+- Спосіб прибрати автостарт Live TV на Changhong/Homwee без root (2026-10) — не знайшли; зробили свій:
+  `power_on_home`, https://github.com/Gathin23/cleanyourtv/pull/1445. Нотатки ERGO/MOOR2 для upstream —
+  https://github.com/Gathin23/cleanyourtv/pull/1446.
