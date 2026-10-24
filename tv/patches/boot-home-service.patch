@@ -1,0 +1,188 @@
+diff --git a/launcher/app/src/main/AndroidManifest.xml b/launcher/app/src/main/AndroidManifest.xml
+index f56e008..9e05b6c 100644
+--- a/launcher/app/src/main/AndroidManifest.xml
++++ b/launcher/app/src/main/AndroidManifest.xml
+@@ -126,5 +126,20 @@
+                 android:name="android.accessibilityservice"
+                 android:resource="@xml/input_key_service" />
+         </service>
++
++        <!-- Firmware that opens Live TV by itself at power-on (Changhong AI PONT): Home comes back until the
++             first remote key; see BootHomeService. -->
++        <service
++            android:name=".BootHomeService"
++            android:exported="false"
++            android:label="@string/boot_home_name"
++            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
++            <intent-filter>
++                <action android:name="android.accessibilityservice.AccessibilityService" />
++            </intent-filter>
++            <meta-data
++                android:name="android.accessibilityservice"
++                android:resource="@xml/boot_home_service" />
++        </service>
+     </application>
+ </manifest>
+diff --git a/launcher/app/src/main/res/values/strings.xml b/launcher/app/src/main/res/values/strings.xml
+index 454dba4..3429f59 100644
+--- a/launcher/app/src/main/res/values/strings.xml
++++ b/launcher/app/src/main/res/values/strings.xml
+@@ -48,6 +48,8 @@
+     <string name="input_key_service_description">Opens the input switcher when the remote\'s Input button is pressed.</string>
+     <string name="home_key_name">Home button</string>
+     <string name="home_key_description">Makes the remote\'s Home button open this launcher.</string>
++    <string name="boot_home_name">Home at power-on</string>
++    <string name="boot_home_description">Returns to this launcher when the TV opens Live TV by itself at power-on.</string>
+     <string name="card_prompt_title">New card from %1$s</string>
+     <string name="card_prompt_body">%1$s can show a card on your home screen. Keeping it hidden leaves the app\'s normal tile as it is.</string>
+     <string name="card_prompt_names">The card is named \'%1$s\'. The app is \'%2$s\'.</string>
+diff --git a/launcher/build-and-install.ps1 b/launcher/build-and-install.ps1
+index 46d578b..ecf0d65 100644
+--- a/launcher/build-and-install.ps1
++++ b/launcher/build-and-install.ps1
+@@ -7,11 +7,13 @@
+ #        [-InputKeyService]   remote's Input button opens the input switcher (Google TV), plus config.xml
+ #                             input_key_keycodes and app_keys; re-pass on every install
+ #        [-HomeKeyService]    remotes whose Home button sends KEYCODE_ALL_APPS (Xiaomi sticks)
++#        [-BootHomeService]   firmware that opens Live TV by itself at power-on (Changhong AI PONT)
+ param(
+     [string]$TvHost = $env:TV_HOST,
+     [string]$StockLauncher = '',
+     [switch]$InputKeyService,
+-    [switch]$HomeKeyService
++    [switch]$HomeKeyService,
++    [switch]$BootHomeService
+ )
+ $ErrorActionPreference = 'Stop'
+ # Pipe plain UTF-8 to native commands; the default here prepends a BOM that corrupts the first command.
+@@ -100,4 +102,5 @@ function Enable-Service([string]$Name) {
+ }
+ if ($InputKeyService) { Enable-Service 'InputKeyService' }
+ if ($HomeKeyService) { Enable-Service 'HomeKeyService' }
++if ($BootHomeService) { Enable-Service 'BootHomeService' }
+ Write-Host 'Installed. Press Home on the remote to see it.'
+diff --git a/launcher/build-and-install.sh b/launcher/build-and-install.sh
+index 1699779..5034d37 100755
+--- a/launcher/build-and-install.sh
++++ b/launcher/build-and-install.sh
+@@ -152,10 +152,13 @@ esac
+ #                         It also handles input_key_keycodes and app_keys (config.xml or a theme; a YouTube button)
+ #   HOME_KEY_SERVICE=1    remotes whose Home button sends KEYCODE_ALL_APPS instead of HOME, e.g. Xiaomi
+ #                         sticks: the key is routed to the launcher (HomeKeyService)
++#   BOOT_HOME_SERVICE=1   firmware that opens Live TV by itself at power-on (Changhong AI PONT): Home comes
++#                         back until the first remote key (BootHomeService)
+ enable_service() {   # appends to enabled_accessibility_services without dropping other services
+   svc=com.gathin.tvhome/.$1
+   "$PY" -I ../tools/tv.py "s=\$(settings get secure enabled_accessibility_services); case \"\$s\" in *$1*) ;; null|'') settings put secure enabled_accessibility_services $svc ;; *) settings put secure enabled_accessibility_services \"\$s:$svc\" ;; esac; settings put secure accessibility_enabled 1; echo $1 enabled"
+ }
+ if [ "${INPUT_KEY_SERVICE:-0}" = 1 ]; then enable_service InputKeyService; fi
+ if [ "${HOME_KEY_SERVICE:-0}" = 1 ]; then enable_service HomeKeyService; fi
++if [ "${BOOT_HOME_SERVICE:-0}" = 1 ]; then enable_service BootHomeService; fi
+ echo "Installed. Press Home on the remote to see it."
+diff --git a/launcher/app/src/main/java/com/gathin/tvhome/BootHomeService.java b/launcher/app/src/main/java/com/gathin/tvhome/BootHomeService.java
+new file mode 100644
+index 0000000..60f64e7
+--- /dev/null
++++ b/launcher/app/src/main/java/com/gathin/tvhome/BootHomeService.java
+@@ -0,0 +1,87 @@
++package com.gathin.tvhome;
++
++import android.accessibilityservice.AccessibilityService;
++import android.content.BroadcastReceiver;
++import android.content.Context;
++import android.content.Intent;
++import android.content.IntentFilter;
++import android.os.SystemClock;
++import android.view.KeyEvent;
++import android.view.accessibility.AccessibilityEvent;
++import android.view.accessibility.AccessibilityNodeInfo;
++
++/**
++ * Brings Home back when the TV opens its Live TV app on its own at power-on. Some MediaTek firmware
++ * (Changhong AI PONT / Homwee, e.g. ERGO DVB92YC) starts com.mediatek.wwtv.tvcenter from a boot receiver
++ * that adb cannot disable on Android 14, and has no "power on input" setting, so every power-on lands on
++ * the tuner's "please scan channels" screen.
++ *
++ * For ARM_MS after boot or after the screen turns on, a Live TV window (live_tv_package from config.xml or
++ * a theme) is answered with Home. The first remote key the user presses disarms it, so opening Live TV on
++ * purpose is never undone.
++ *
++ * Opt-in: BOOT_HOME_SERVICE=1 build-and-install.sh (or -BootHomeService on Windows) enables it.
++ */
++public class BootHomeService extends AccessibilityService {
++
++    private static final long ARM_MS = 60_000;
++
++    private String liveTvPackage = "";
++    private long armedUntil;
++
++    private final BroadcastReceiver screenOn = new BroadcastReceiver() {
++        @Override
++        public void onReceive(Context context, Intent intent) {
++            armedUntil = SystemClock.elapsedRealtime() + ARM_MS;
++        }
++    };
++
++    @Override
++    protected void onServiceConnected() {
++        super.onServiceConnected();
++        liveTvPackage = Config.load(this).liveTvPackage;
++        registerReceiver(screenOn, new IntentFilter(Intent.ACTION_SCREEN_ON));
++        // The service binds during boot, often after Live TV is already up: count from boot, not from now.
++        armedUntil = ARM_MS * 2;
++        AccessibilityNodeInfo root = getRootInActiveWindow();
++        if (root != null && armed() && liveTvPackage.contentEquals(root.getPackageName())) goHome();
++    }
++
++    @Override
++    public void onDestroy() {
++        try {
++            unregisterReceiver(screenOn);
++        } catch (IllegalArgumentException ignored) {
++        }
++        super.onDestroy();
++    }
++
++    private boolean armed() {
++        return !liveTvPackage.isEmpty() && SystemClock.elapsedRealtime() < armedUntil;
++    }
++
++    private void goHome() {
++        startActivity(new Intent(Intent.ACTION_MAIN)
++                .addCategory(Intent.CATEGORY_HOME)
++                .setPackage(getPackageName())
++                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED));
++    }
++
++    @Override
++    public void onAccessibilityEvent(AccessibilityEvent event) {
++        if (event.getEventType() != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED || !armed()) return;
++        if (liveTvPackage.contentEquals(event.getPackageName())) goHome();
++    }
++
++    @Override
++    protected boolean onKeyEvent(KeyEvent event) {
++        // Power and wake keys turn the TV on; any other key means the user is in charge now.
++        int code = event.getKeyCode();
++        if (code != KeyEvent.KEYCODE_POWER && code != KeyEvent.KEYCODE_WAKEUP) armedUntil = 0;
++        return false;
++    }
++
++    @Override
++    public void onInterrupt() {
++    }
++}
+diff --git a/launcher/app/src/main/res/xml/boot_home_service.xml b/launcher/app/src/main/res/xml/boot_home_service.xml
+new file mode 100644
+index 0000000..7c5a6bf
+--- /dev/null
++++ b/launcher/app/src/main/res/xml/boot_home_service.xml
+@@ -0,0 +1,8 @@
++<?xml version="1.0" encoding="utf-8"?>
++<accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
++    android:accessibilityEventTypes="typeWindowStateChanged"
++    android:accessibilityFeedbackType="feedbackGeneric"
++    android:accessibilityFlags="flagRequestFilterKeyEvents"
++    android:canRequestFilterKeyEvents="true"
++    android:canRetrieveWindowContent="true"
++    android:description="@string/boot_home_description" />

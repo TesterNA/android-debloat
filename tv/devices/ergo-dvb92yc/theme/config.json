@@ -1,0 +1,10 @@
+{
+  "dock_apps": [
+    "com.kyivstar.tv.androidtv",
+    "com.megogo.application",
+    "tv.sweet.tvplayer",
+    "com.google.android.youtube.tv"
+  ],
+  "hidden_apps": ["com.mediatek.wwtv.tvcenter"],
+  "live_tv_package": "com.mediatek.wwtv.tvcenter"
+}

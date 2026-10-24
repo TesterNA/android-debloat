@@ -1,0 +1,2 @@
+# Setup wizard: also answers HOME on Google TV, blocks a third-party launcher. Re-enable before a factory reset.
+com.google.android.tungsten.setupwraith

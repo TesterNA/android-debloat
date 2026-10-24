@@ -1,0 +1,45 @@
+# Google Pixel 3 (blueline), Android 12 SP1A.210812.016.C1, security patch 2021-10-05
+# Regular (unsupervised) phone. Apps and Google features the owner uses were kept by their choice
+# (social apps, browsers, Android System Intelligence, Android Auto, Pixel accessories, …).
+#
+# Apply:  PHONE=<ip:port> bash scripts/disable.sh devices/google-pixel3-blueline/debloat.txt [1]
+# Undo:   PHONE=<ip:port> bash scripts/restore.sh devices/google-pixel3-blueline/debloat.txt
+# Disabled for user 0 only (pm disable-user), never uninstalled. Wait ~30 s after the last pm call
+# before rebooting, or the state may not reach disk.
+#
+# Already disabled before we started (Verizon/Sprint carrier DM packages, com.google.android.hiddenmenu).
+#
+# DO NOT DISABLE: com.google.android.gms, com.android.vending, com.google.android.apps.nexuslauncher,
+#   com.android.systemui, com.google.android.inputmethod.latin, com.google.android.odad (Play Protect),
+#   com.google.android.grilservice (radio), com.google.android.turboadapter (battery estimates).
+
+# ---- TIER 1: Google diagnostics, feedback and telemetry ----
+com.google.android.feedback            # crash-report feedback sender
+com.google.android.apps.internal.betterbug   # internal bug reporter
+com.google.android.apps.carrier.log    # carrier app logging
+com.google.android.apps.helprtc        # Google Support Services
+com.google.android.gms.location.history
+com.android.traceur                    # system tracing
+
+# ---- TIER 1: unused leftovers ----
+com.google.android.apps.tips           # Pixel Tips
+com.google.android.onetimeinitializer  # first-boot only
+com.google.vr.vrcore                   # Google VR services, Daydream is dead
+com.google.android.music               # Google Play Music, discontinued
+com.android.egg                        # Android easter egg
+com.android.providers.partnerbookmarks # partner bookmarks in Chrome
+com.qualcomm.uimremoteclient           # R-UIM cards, Asia only
+com.qualcomm.uimremoteserver
+
+# ---- UNINSTALLED (owner's choice; reinstall from Play Store if wanted) ----
+#   com.weather.free.forecast.dailyweather   starts at boot, tried to draw overlays (adware pattern)
+#   com.alibaba.aliexpresshd, com.xiaomi.midrop (ShareMe, shows ads),
+#   com.kiwibrowser.browser (abandoned, no security updates), com.sec.android.app.sbrowser
+#
+# Facebook (com.facebook.katana) kept but restricted:
+#   cmd appops set com.facebook.katana RUN_ANY_IN_BACKGROUND ignore   (undo: allow)
+#   cmd appops set com.facebook.katana RUN_IN_BACKGROUND ignore       (undo: allow)
+#   cmd appops set com.facebook.katana WAKE_LOCK ignore               (undo: allow)
+#   am set-standby-bucket com.facebook.katana restricted              (undo: active)
+#   cmd netpolicy add restrict-background-blacklist 10213             (undo: remove ...; blocks bg mobile data)
+#   Background location was never granted; foreground location stays (owner can revoke in Settings).

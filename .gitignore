@@ -1,0 +1,16 @@
+# Private details for this PC (paths, device IPs, owners) — local only, read by agents if present
+LOCAL.md
+
+# Raw device backups (IMEI, serial numbers, account e-mails) and per-device action logs — local only
+phone/devices/*/backup-*/
+phone/devices/*/applied.log
+
+# Downloadable tooling and data
+phone/platform-tools/
+phone/uad/uad_lists.json
+
+# Keys, builds, caches
+*adbkey*
+*.apk
+__pycache__/
+*.pyc

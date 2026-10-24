@@ -1,0 +1,19 @@
+# Round 2 for MiTV-MOOR2. Undo: tools\restore.ps1 -TvHost <ip> my-tv-debloat-2.txt -Stock com.gathin.tvhome
+
+# Group 1: unused streaming / Google extras
+com.amazon.amazonvideo.livingroom      # Prime Video
+com.google.android.videos              # Google TV / Play Movies
+com.google.android.youtube.tvmusic     # YouTube Music
+com.google.android.marvin.talkback     # screen reader
+com.android.printspooler               # printing
+com.google.android.feedback            # Google feedback reporter
+com.google.android.syncadapters.calendar
+
+# Group 2: remaining Xiaomi
+com.xiaomi.mitv.updateservice          # Xiaomi OTA (no firmware updates while off)
+com.mitv.upgrader                      # Xiaomi OTA
+com.mitv.ABUpdateStatus                # Xiaomi OTA
+com.mitv.videoplayer                   # Xiaomi USB media player
+com.mitv.gallery                       # Xiaomi gallery
+com.xiaomi.mitv.mediaexplorer          # Xiaomi media explorer
+com.mitv.livetv.ci_mediatek            # CI+ card module for broadcast TV

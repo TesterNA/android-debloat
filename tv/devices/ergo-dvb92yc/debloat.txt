@@ -1,0 +1,45 @@
+# ERGO DVB92YC (Changhong AI PONT, device redwood), Android TV 14, firmware UKNV.260514.001, 1 GB RAM.
+# Same board and firmware as examples/rca-ai-pont; this list is based on it.
+# Undo: tools\restore.ps1 -TvHost <ip> ergo-debloat.txt -Stock com.google.android.tvlauncher
+#
+# Kept on purpose:
+# - com.google.android.tungsten.setupwraith: owns the saved Wi-Fi network here (disabling it would drop
+#   Wi-Fi), and on this tvlauncher firmware it does not claim Home.
+# - com.homwee.dmt.upgrade (firmware updates), com.homwee.factory, com.homwee.synckey (remote keys),
+#   com.homwee.dynamicbacklight, com.google.android.leanbacklauncher.partnercustomizer, com.mediatek.*,
+#   com.google.android.tv.remote.service (phone remote).
+
+# Content recognition, ads and recommendation rows
+tv.anoki.acr.anokiacroptin              # automatic content recognition
+com.cltv.fast                           # FAST channel app
+com.google.android.tvrecommendations
+com.google.android.partnersetup
+android.autoinstalls.config.homwee
+
+# Homwee store, installers and extras
+com.homwee.aipont                       # brand portal
+com.homwee.store
+com.homwee.help                         # e-manual
+com.homwee.chinstallapk                 # silent installer
+com.homwee.upgrade                      # vendor app updater (Play Store still updates apps)
+com.homwee.chtvmanager                  # "TV Manager"
+com.homwee.mmp.fileexplorer             # USB browser; a third-party file manager is installed
+com.homwee.mmp.imageplayer
+com.homwee.mmp.screenshare              # screen mirroring
+com.homwee.multiscreenshare
+com.homwee.alexacontrol
+
+# Google extras
+com.google.android.feedback
+com.android.tv.feedbackconsent
+com.google.android.youtube.tvmusic
+com.google.android.play.games
+com.google.android.videos
+com.google.android.tts
+com.google.android.backdrop             # ambient screensaver
+com.google.android.syncadapters.calendar
+
+# Off by choice
+com.google.android.katniss              # voice search / mic button
+com.google.android.apps.mediashell      # Chromecast built-in
+com.amazon.amazonvideo.livingroom       # Prime Video

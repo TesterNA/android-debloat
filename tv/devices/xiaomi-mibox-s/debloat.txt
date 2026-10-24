@@ -1,0 +1,34 @@
+# Xiaomi Mi Box S (MIBOX4, oneday), Android TV 9, firmware PI.3933. Based on examples/xiaomi-mi-box-s.
+# Stock launcher kept on purpose (com.google.android.tvlauncher), so it and the Ambient screensaver stay.
+# Kept by choice: voice search (katniss, speech.pumpkin), Chromecast (mediashell), phone remote (tv.remote.service).
+# Undo: tools\restore.ps1 -TvHost <ip> mibox-debloat.txt
+
+# Xiaomi + Google telemetry and ad tracking
+com.miui.tv.analytics                  # Mi analytics: reads logs and app usage
+tv.alphonso.alphonso_eula              # Alphonso ad tracking, reads app usage stats
+com.google.android.feedback
+com.google.android.tv.bugreportsender
+
+# PatchWall, content rows, promos, auto-installs
+com.mitv.tvhome.atv                    # PatchWall
+com.mitv.tvhome.michannel              # Mi Channel rows
+com.xm.webcontent                      # Xiaomi web promos
+com.google.android.tvrecommendations
+android.autoinstalls.config.xioami.mibox3   # partner auto-installs (sic, "xioami")
+
+# Xiaomi background services
+com.xiaomi.mitv.updateservice          # firmware updates; re-enable to check for one
+com.mitv.download.service              # its download helper
+
+# Mi Cast
+com.mitv.milinkservice
+com.mitv.videoplayer
+
+# Preloaded apps
+com.google.android.tv                  # Live Channels
+com.google.android.videos              # Play Movies & TV
+com.google.android.youtube.tvmusic
+com.google.android.play.games
+com.android.camera2
+com.google.android.marvin.talkback
+com.android.printspooler

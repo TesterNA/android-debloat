@@ -1,0 +1,83 @@
+# Redmi Note 10 Pro (sweet_eea, M2101K6G), MIUI 13 V13.0.17.0.SKFEUXM, Android 12
+# Supervised phone (child account under Google Family Link): stricter cleanup, supervision untouched.
+#
+# Apply:  PHONE=<ip:port> bash scripts/disable.sh devices/xiaomi-redmi-note10pro-sweet/debloat.txt [1]
+# Undo:   PHONE=<ip:port> bash scripts/restore.sh devices/xiaomi-redmi-note10pro-sweet/debloat.txt
+# Everything is DISABLED for user 0 (pm disable-user), never uninstalled. Comment out any line to keep it.
+#
+# DO NOT DISABLE on this phone:
+#   com.google.android.apps.kids.familylinkhelper   Family Link on the child's side
+#   com.google.android.gms / .gsf / com.android.vending   Play services and Play Store (Family Link runs on them)
+#   com.google.android.apps.youtube.kids             check with the owner whether it is used before touching it
+#   com.xiaomi.account, com.xiaomi.xmsf              Mi account / service framework: lock screen, Find Device, alarms
+#   com.miui.securitycenter, com.miui.powerkeeper, com.lbe.security.miui   permissions and battery management
+#   com.miui.home, com.android.systemui, miui.systemui.plugin   launcher and status bar
+#   com.google.android.inputmethod.latin             the only keyboard
+#   com.android.camera                               this is the Xiaomi camera on this phone
+
+# ---- TIER 1: Xiaomi ads and telemetry ----
+com.miui.msa.global                    # MIUI System Ads: ads in system apps
+com.miui.analytics                     # Xiaomi Analytics
+com.miui.miservice                     # Services & feedback, runs in background
+com.miui.bugreport                     # Mi Feedback
+com.xiaomi.discover                    # "System apps updater": silently installed Binance and games here (installer of record)
+android.autoinstalls.config.Xiaomi.qssi   # Play Auto Installs config for preloads
+com.miui.android.fashiongallery        # Wallpaper Carousel: lock screen ads, ~80 MB RAM
+com.miui.hybrid                        # Quick Apps
+com.miui.hybrid.accessory
+com.mi.global.bbs                      # Mi Community
+com.mi.globalbrowser                   # Mi Browser, ad-heavy (Chrome stays)
+com.opera.preinstall                   # Opera preinstall tracker
+com.qti.qualcomm.mstatssystemservice   # Qualcomm usage statistics
+com.modemdebug                         # modem debug logger in background
+com.bsp.catchlog                       # log catcher
+com.miui.yellowpage                    # Yellow Pages
+com.xiaomi.payment                     # Mi Credit (India)
+org.mipay.android.manager              # Mi Pay service
+com.google.android.gms.location.history
+
+# ---- TIER 1: Facebook and Amazon preload helpers (Facebook/Messenger keep working if used) ----
+com.facebook.appmanager
+com.facebook.services
+com.facebook.system
+com.amazon.appmanager
+
+# ---- UNINSTALLED on 2026-10-21 (pm uninstall, not disabled; reinstall from Play Store if wanted) ----
+#   com.binance.dev                       pushed by com.xiaomi.discover on 2024-02-05 02:06
+#   com.block.puzzle.game.hippo.mi, com.crazy.juicer.xm, com.kingsgroup.ss.xiaomi,
+#   com.jewelsblast.ivygames.Adventure.free, com.logame.eliminateintruder3d,
+#   com.mintgames.triplecrush.tile.fun, com.sukhavati.gotoplaying.bubble.BubbleShooter.mint,
+#   com.oakever.tiletrip                  Xiaomi preloaded/pushed games
+#   plus third-party apps the owner chose to remove (list kept locally, not in the repo)
+#
+# NOTE: rebooting right after disabling lost the TIER 2 batch (state not yet written to disk). Wait ~30 s
+# after the last pm call before rebooting.
+#
+# Facebook (com.facebook.katana) is kept but restricted, not in this list:
+#   cmd appops set com.facebook.katana RUN_ANY_IN_BACKGROUND ignore   (undo: allow)
+#   cmd appops set com.facebook.katana RUN_IN_BACKGROUND ignore       (undo: allow)
+#   cmd appops set com.facebook.katana WAKE_LOCK ignore               (undo: allow)
+#   am set-standby-bucket com.facebook.katana restricted              (undo: active)  -- MIUI ignores it, stays 10
+# MIUI resets RUN_ANY_IN_BACKGROUND to allow at boot from its own per-app battery setting. Make it stick in
+# the UI: Settings > Apps > Facebook > Battery saver > Restrict background activity, and Autostart off.
+#
+# com.miui.daemon is persistent (UID 1000): disable-user and force-stop do nothing, so it was removed for user 0:
+#   pm uninstall -k --user 0 com.miui.daemon      (undo: cmd package install-existing com.miui.daemon)
+#
+# Private DNS dns.adguard-dns.com set by hand in Settings (adb lacks WRITE_SECURE_SETTINGS on MIUI).
+# Undo: Settings > Private DNS > Automatic.
+
+# ---- TIER 2: dead or unused preloads ----
+com.google.android.music               # Google Play Music, discontinued
+com.google.android.apps.podcasts       # Google Podcasts, discontinued
+com.google.android.videos              # Google TV
+com.google.vr.vrcore                   # Google VR services
+com.sec.android.easyMover              # Samsung Smart Switch, of no use on Xiaomi
+com.duokan.phone.remotecontroller      # Mi Remote
+cn.wps.xiaomi.abroad.lite              # WPS doc viewer
+com.booking
+
+# ---- System updates, off at the owner's request (security patch stays 2022-12-01) ----
+# MIUI refuses `pm disable-user` here ("Cannot disable miui core packages"), so it was removed for user 0:
+#   pm uninstall -k --user 0 com.android.updater
+# Undo (APK is still on /system):  cmd package install-existing com.android.updater
