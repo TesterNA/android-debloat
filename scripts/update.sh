@@ -35,19 +35,29 @@ while IFS='|' read -r name url; do
   fi
 done <<< "$DEPS"
 
+# A Python 3 that really runs (on Windows "python3" can be a Microsoft Store stub).
+PY=""
+for c in python3 python py; do
+  if command -v "$c" >/dev/null 2>&1 && "$c" -c 'import sys; sys.exit(sys.version_info[0] != 3)' >/dev/null 2>&1; then PY=$c; break; fi
+done
+
 # CleanYourTV's ADB client (adb-shell) lives in a venv inside its clone.
 CYT="$PARENT/cleanyourtv"
 if [ -f "$CYT/tools/requirements.txt" ] && [ ! -d "$CYT/tools/venv" ]; then
-  PY=$(command -v python3 || command -v python || true)
   if [ -n "$PY" ]; then
-    "$PY" -m venv "$CYT/tools/venv" && { "$CYT/tools/venv/bin/python" -m pip install -q -r "$CYT/tools/requirements.txt" 2>/dev/null \
-      || "$CYT/tools/venv/Scripts/python.exe" -m pip install -q -r "$CYT/tools/requirements.txt"; } && echo "venv     cleanyourtv/tools/venv created"
-  else echo "NOTE     python not found: CleanYourTV's venv was not created"; fi
+    VPY="$CYT/tools/venv/bin/python"
+    if "$PY" -m venv "$CYT/tools/venv"; then
+      [ -x "$VPY" ] || VPY="$CYT/tools/venv/Scripts/python.exe"
+      if "$VPY" -m pip install -q -r "$CYT/tools/requirements.txt"; then echo "venv     cleanyourtv/tools/venv created"
+      else echo "FAILED   pip install in cleanyourtv/tools/venv"; status=1; fi
+    else echo "FAILED   python -m venv for cleanyourtv"; status=1; fi
+  else echo "MISSING  Python 3: install it, then run this again (CleanYourTV needs it)"; status=1; fi
 fi
 
 # UAD-ng package database for phones (refresh if missing or older than 30 days).
 UAD="$ROOT/phone/uad/uad_lists.json"
 if [ ! -f "$UAD" ] || [ -n "$(find "$UAD" -mtime +30 2>/dev/null)" ]; then
-  bash "$ROOT/phone/scripts/update-uad.sh" && echo "updated  UAD-ng database"
+  if PYTHON="$PY" bash "$ROOT/phone/scripts/update-uad.sh"; then echo "updated  UAD-ng database"
+  else echo "FAILED   UAD-ng database update"; status=1; fi
 else echo "ok       UAD-ng database ($(cat "$ROOT/phone/uad/updated.txt" 2>/dev/null))"; fi
 exit $status
