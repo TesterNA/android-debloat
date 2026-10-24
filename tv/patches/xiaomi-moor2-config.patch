@@ -1,8 +1,8 @@
 diff --git a/launcher/app/src/main/res/values/config.xml b/launcher/app/src/main/res/values/config.xml
-index d415e69..396abf9 100644
+index 8dbd32be..75cbcc68 100644
 --- a/launcher/app/src/main/res/values/config.xml
 +++ b/launcher/app/src/main/res/values/config.xml
-@@ -10,9 +10,7 @@
+@@ -18,9 +18,7 @@
      <!-- Apps pinned to the dock row at the bottom, in this order. Missing apps are skipped. -->
      <string-array name="dock_apps">
          <item>com.netflix.ninja</item>
@@ -12,7 +12,7 @@ index d415e69..396abf9 100644
      </string-array>
      <!-- With fewer dock_apps than columns (or a dock app that is not installed), the free dock slots take
           the first grid apps, so the dock never shows a gap. false leaves them empty (#162); a theme can
-@@ -21,12 +19,12 @@
+@@ -29,12 +27,12 @@
  
      <!-- Apps never shown as tiles (e.g. the Live TV app, which the Inputs menu already covers). -->
      <string-array name="hidden_apps">
@@ -25,5 +25,5 @@ index d415e69..396abf9 100644
 -    <string name="live_tv_package" translatable="false">com.mediatek.wwtv.tvcenter</string>
 +    <string name="live_tv_package" translatable="false">com.mitv.livetv</string>
  
-     <!-- Some TVs give their Live TV app no leanback entry point at all, so `live_tv_package` above
-          resolves to nothing (TCL Android TV 9 on China-market sets is one). This action is then sent
+     <!-- Open the Live TV app above the first time Home comes up after the TV is switched on, for sets that are
+          mostly used for broadcast TV. Once per boot: Home after that stays Home. Can also be set with

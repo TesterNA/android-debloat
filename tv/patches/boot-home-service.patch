@@ -1,8 +1,8 @@
 diff --git a/launcher/app/src/main/AndroidManifest.xml b/launcher/app/src/main/AndroidManifest.xml
-index f56e008..9e05b6c 100644
+index 5da0f46a..30d8a541 100644
 --- a/launcher/app/src/main/AndroidManifest.xml
 +++ b/launcher/app/src/main/AndroidManifest.xml
-@@ -126,5 +126,20 @@
+@@ -223,5 +223,20 @@
                  android:name="android.accessibilityservice"
                  android:resource="@xml/input_key_service" />
          </service>
@@ -24,10 +24,10 @@ index f56e008..9e05b6c 100644
      </application>
  </manifest>
 diff --git a/launcher/app/src/main/res/values/strings.xml b/launcher/app/src/main/res/values/strings.xml
-index 454dba4..3429f59 100644
+index ad90112f..5a08b213 100644
 --- a/launcher/app/src/main/res/values/strings.xml
 +++ b/launcher/app/src/main/res/values/strings.xml
-@@ -48,6 +48,8 @@
+@@ -74,6 +74,8 @@
      <string name="input_key_service_description">Opens the input switcher when the remote\'s Input button is pressed.</string>
      <string name="home_key_name">Home button</string>
      <string name="home_key_description">Makes the remote\'s Home button open this launcher.</string>
@@ -37,51 +37,53 @@ index 454dba4..3429f59 100644
      <string name="card_prompt_body">%1$s can show a card on your home screen. Keeping it hidden leaves the app\'s normal tile as it is.</string>
      <string name="card_prompt_names">The card is named \'%1$s\'. The app is \'%2$s\'.</string>
 diff --git a/launcher/build-and-install.ps1 b/launcher/build-and-install.ps1
-index 46d578b..ecf0d65 100644
+index 6a094d02..aedeed8e 100644
 --- a/launcher/build-and-install.ps1
 +++ b/launcher/build-and-install.ps1
-@@ -7,11 +7,13 @@
- #        [-InputKeyService]   remote's Input button opens the input switcher (Google TV), plus config.xml
+@@ -8,12 +8,14 @@
  #                             input_key_keycodes and app_keys; re-pass on every install
  #        [-HomeKeyService]    remotes whose Home button sends KEYCODE_ALL_APPS (Xiaomi sticks)
+ #        [-RestoreKeyServices] grants WRITE_SECURE_SETTINGS for restore_key_services (helpers back after a force stop)
 +#        [-BootHomeService]   firmware that opens Live TV by itself at power-on (Changhong AI PONT)
  param(
      [string]$TvHost = $env:TV_HOST,
      [string]$StockLauncher = '',
      [switch]$InputKeyService,
--    [switch]$HomeKeyService
-+    [switch]$HomeKeyService,
+     [switch]$HomeKeyService,
+-    [switch]$RestoreKeyServices
++    [switch]$RestoreKeyServices,
 +    [switch]$BootHomeService
  )
  $ErrorActionPreference = 'Stop'
  # Pipe plain UTF-8 to native commands; the default here prepends a BOM that corrupts the first command.
-@@ -100,4 +102,5 @@ function Enable-Service([string]$Name) {
+@@ -111,4 +113,5 @@ if ($HomeKeyService) { Enable-Service 'HomeKeyService' }
+ if ($RestoreKeyServices) {
+     'pm grant com.gathin.tvhome android.permission.WRITE_SECURE_SETTINGS && echo restore-granted' | & $py -I ..\tools\tv.py --batch
  }
- if ($InputKeyService) { Enable-Service 'InputKeyService' }
- if ($HomeKeyService) { Enable-Service 'HomeKeyService' }
 +if ($BootHomeService) { Enable-Service 'BootHomeService' }
  Write-Host 'Installed. Press Home on the remote to see it.'
 diff --git a/launcher/build-and-install.sh b/launcher/build-and-install.sh
-index 1699779..5034d37 100755
+index 2942e9fb..e4232fde 100755
 --- a/launcher/build-and-install.sh
 +++ b/launcher/build-and-install.sh
-@@ -152,10 +152,13 @@ esac
- #                         It also handles input_key_keycodes and app_keys (config.xml or a theme; a YouTube button)
- #   HOME_KEY_SERVICE=1    remotes whose Home button sends KEYCODE_ALL_APPS instead of HOME, e.g. Xiaomi
+@@ -202,6 +202,8 @@ esac
  #                         sticks: the key is routed to the launcher (HomeKeyService)
+ #   RESTORE_KEY_SERVICES=1  grants WRITE_SECURE_SETTINGS, so that with restore_key_services (config.xml or a
+ #                         theme) Home puts these helpers back after a force stop of the launcher
 +#   BOOT_HOME_SERVICE=1   firmware that opens Live TV by itself at power-on (Changhong AI PONT): Home comes
 +#                         back until the first remote key (BootHomeService)
- enable_service() {   # appends to enabled_accessibility_services without dropping other services
-   svc=com.gathin.tvhome/.$1
-   "$PY" -I ../tools/tv.py "s=\$(settings get secure enabled_accessibility_services); case \"\$s\" in *$1*) ;; null|'') settings put secure enabled_accessibility_services $svc ;; *) settings put secure enabled_accessibility_services \"\$s:$svc\" ;; esac; settings put secure accessibility_enabled 1; echo $1 enabled"
- }
- if [ "${INPUT_KEY_SERVICE:-0}" = 1 ]; then enable_service InputKeyService; fi
- if [ "${HOME_KEY_SERVICE:-0}" = 1 ]; then enable_service HomeKeyService; fi
+ # TCL firmware (TclAppBoot) refuses to bind an app's accessibility service while the app is not running unless it
+ # holds the AUTO_START app-op, so grant it first; other TVs do not know the op and ignore it. Builds name it
+ # AUTO_START (G08, AU02) or APP_AUTO_START (G10), so set both. App-ops reach the disk lazily: without
+@@ -218,4 +220,5 @@ if [ "${HOME_KEY_SERVICE:-0}" = 1 ]; then enable_service HomeKeyService; fi
+ if [ "${RESTORE_KEY_SERVICES:-0}" = 1 ]; then
+   "$PY" -I ../tools/tv.py "pm grant com.gathin.tvhome android.permission.WRITE_SECURE_SETTINGS && echo restore-granted"
+ fi
 +if [ "${BOOT_HOME_SERVICE:-0}" = 1 ]; then enable_service BootHomeService; fi
  echo "Installed. Press Home on the remote to see it."
 diff --git a/launcher/app/src/main/java/com/gathin/tvhome/BootHomeService.java b/launcher/app/src/main/java/com/gathin/tvhome/BootHomeService.java
 new file mode 100644
-index 0000000..60f64e7
+index 00000000..60f64e7d
 --- /dev/null
 +++ b/launcher/app/src/main/java/com/gathin/tvhome/BootHomeService.java
 @@ -0,0 +1,87 @@
@@ -174,7 +176,7 @@ index 0000000..60f64e7
 +}
 diff --git a/launcher/app/src/main/res/xml/boot_home_service.xml b/launcher/app/src/main/res/xml/boot_home_service.xml
 new file mode 100644
-index 0000000..7c5a6bf
+index 00000000..7c5a6bf1
 --- /dev/null
 +++ b/launcher/app/src/main/res/xml/boot_home_service.xml
 @@ -0,0 +1,8 @@
