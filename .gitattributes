@@ -1,3 +1,5 @@
 # bash scripts must keep LF line endings on every OS (CRLF breaks them in Git Bash / macOS / Linux)
 *.sh text eol=lf
 *.py text eol=lf
+# patches for git apply: keep them byte-exact on every OS
+*.patch text eol=lf
