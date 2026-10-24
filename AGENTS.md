@@ -1,12 +1,9 @@
-# Guide for AI assistants other than Claude Code
+# AGENTS.md
 
-This repository is written for Claude Code, which reads `CLAUDE.md` automatically. If you are another
-assistant (Codex, Cursor, Gemini, Copilot, Antigravity, …), follow the same files yourself:
+The instructions for this repository are in [`CLAUDE.md`](CLAUDE.md) (same folder). They are written for
+every AI assistant, not only Claude Code: Codex, Cursor, Gemini, Copilot, Antigravity and others must read
+`CLAUDE.md` in full first and follow it exactly, including the files it points to.
 
-- Phones → read and follow [`phone/CLAUDE.md`](phone/CLAUDE.md) (start text: `phone/PROMPT.md`).
-- Android TV / Google TV → read and follow [`tv/CLAUDE.md`](tv/CLAUDE.md) (start text: `tv/PROMPT.md`).
-
-Read the whole `CLAUDE.md` of the right folder before doing anything, then the files it lists
-(`KNOWLEDGE.md` / `lessons.md`, `SOURCES.md`, `devices/`). Its rules apply to you unchanged: ask before
-every change on a device, disable instead of uninstalling, keep everything reversible, and never commit
-or push without the user's explicit request. The user writes in Ukrainian: answer in Ukrainian.
+Key rules, in case you read only this file: use the user's language (ask EN / UK / RU if unclear), update
+this repo and its dependencies first (`scripts/update.ps1` or `scripts/update.sh`), interview the user item
+by item, ask before every change on a device, never commit or push without an explicit request.

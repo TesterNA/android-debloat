@@ -6,23 +6,23 @@ param(
     [string[]]$OffGroups = @(),
     [switch]$DryRun,
     # Local CleanYourTV clone, by default next to this repository.
-    [string]$Repo = (Join-Path $PSScriptRoot '..\..\..\cleanyourtv')
+    [string]$Repo = (Join-Path $PSScriptRoot '../../../cleanyourtv')
 )
+. (Join-Path $PSScriptRoot 'common.ps1')
 # Stock Android TV (tvlauncher, Android 9-14) home screen: walk Settings > Home screen > Customize
 # channels and switch off the named rows. Prints every row it sees, so run with -DryRun first.
 # Afterwards: am force-stop com.google.android.tvlauncher, then Home, or the old rows stay cached.
 # Example: tools\channels.ps1 -TvHost 192.168.1.50 -Off 'Основні сервіси Android TV','Netflix' -DryRun
 $env:TV_HOST = $TvHost
-if (-not (Test-NetConnection ($TvHost -split ':')[0] -Port 5555 -InformationLevel Quiet -WarningAction SilentlyContinue)) {
-    throw "$TvHost`:5555 does not answer: is the TV on and USB debugging enabled?"
-}
-$py = "$Repo\tools\venv\Scripts\python.exe"
-$local = Join-Path $env:TEMP "tv-ch-$($TvHost -replace '\W','_').xml"
-function Send([string[]]$c) { $c | & $py -I "$Repo\tools\tv.py" --batch | Out-Null }
+Assert-TvReachable $TvHost
+$py = Get-CytPython $Repo
+$tv = "$Repo/tools/tv.py"
+$local = Get-TempFile "tv-ch-$($TvHost -replace '\W','_').xml"
+function Send([string[]]$c) { $c | & $py -I $tv --batch | Out-Null }
 
 function Focused {
     Send 'uiautomator dump /sdcard/c.xml >/dev/null 2>&1'
-    & $py -I "$Repo\tools\tv.py" --pull /sdcard/c.xml $local | Out-Null
+    & $py -I $tv --pull /sdcard/c.xml $local | Out-Null
     $x = [IO.File]::ReadAllText($local, [Text.Encoding]::UTF8)
     $f = [regex]::Match($x, '<node [^>]*focused="true"[^>]*bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"')
     if (-not $f.Success) { return $null }

@@ -11,6 +11,7 @@ ONLY1="${2:-}"
 DEV="${PHONE:?set PHONE=<ip:port>}"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 ADB="${ADB:-$ROOT/platform-tools/adb.exe}"
+[ -x "$ADB" ] || ADB="$ROOT/platform-tools/adb"   # macOS / Linux platform-tools
 [ -x "$ADB" ] || ADB=adb
 LOG="$(dirname "$LIST")/applied.log"
 

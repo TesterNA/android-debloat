@@ -8,6 +8,7 @@ LIST="${1:?usage: PHONE=<ip:port> restore.sh <list>}"
 DEV="${PHONE:?set PHONE=<ip:port>}"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 ADB="${ADB:-$ROOT/platform-tools/adb.exe}"
+[ -x "$ADB" ] || ADB="$ROOT/platform-tools/adb"   # macOS / Linux platform-tools
 [ -x "$ADB" ] || ADB=adb
 
 PKGS=$(awk '

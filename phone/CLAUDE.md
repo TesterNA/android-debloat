@@ -1,8 +1,32 @@
-# Дебловт Android-телефонів: процедура
+# Android phone debloat — procedure
+
+**For any assistant (English summary; the detailed steps below are in Ukrainian — follow them too):**
+
+- Read `../CLAUDE.md` first. Talk to the user **only in their language** (ask EN / UK / RU if unclear);
+  the Ukrainian text of this file never decides the language you use with the user.
+- `../scripts/update.*` must have run this session: newest repo + newest UAD-ng database.
+- adb: `platform-tools/adb.exe` (Windows) or `platform-tools/adb` (macOS / Linux), else `adb` from PATH.
+  Downloads: https://dl.google.com/android/repository/platform-tools-latest-windows.zip /
+  `-darwin.zip` / `-linux.zip`. Scripts are bash: Git Bash on Windows, Terminal on macOS / Linux.
+- **Interview — mandatory, item by item, after the analysis** (never only "minimal vs everything";
+  each item gets its own answer, with your recommendation and what the user loses):
+  1. Whose phone: own / someone else's / supervised child account (Family Link: stricter cleanup,
+     never touch supervision).
+  2. Which preinstalled and installed apps are really used (checklist). Unused → disable or remove as
+     the user decides; used but heavy (Facebook etc.) → keep, restrict background (step 6) — ask per app.
+  3. Telemetry, ads, silent installers → removed without asking (listed in the report).
+  4. Features — one question each: Google Assistant / voice, Android System Intelligence, Android Auto,
+     wearables / Pixel or vendor accessories, vendor cloud & account apps, casting / Nearby Share,
+     ad-blocking Private DNS, system updates.
+  5. Suspicious apps (loans, crypto, "cleaners", weather apps with autostart) → list them, ask per app:
+     remove, restrict or keep.
+  6. Everything else per the steps below, `KNOWLEDGE.md` and `SOURCES.md`.
+
+---
 
 Ця папка — інструментарій для дебловту Android-телефонів по Wi-Fi через ADB. Кожен телефон проходить
 усі кроки нижче, по порядку, без пропусків. Перед роботою прочитай `KNOWLEDGE.md` (пастки за виробниками)
-і папку `devices/` (готові приклади). Відповідай українською.
+і папку `devices/` (готові приклади). Спілкуйся мовою користувача (див. вище).
 
 Якщо є `..\LOCAL.md` (його немає в git) — прочитай: там приватні деталі цього ПК (IP і власники
 телефонів, що саме видалено на чиє прохання). Репозиторій публічний: імена, IP, пошти, хто чий
@@ -15,8 +39,9 @@
 
 ## Структура
 
-- `platform-tools/adb.exe` — офіційний adb від Google (якщо нема: завантаж
-  `https://dl.google.com/android/repository/platform-tools-latest-windows.zip` і розпакуй сюди)
+- `platform-tools/adb.exe` (Windows) або `platform-tools/adb` (macOS / Linux) — офіційний adb від Google
+  (якщо нема: завантаж `https://dl.google.com/android/repository/platform-tools-latest-<windows|darwin|linux>.zip`
+  і розпакуй сюди; або встанови adb у PATH)
 - `scripts/collect.sh <ip:port> <device-dir>` — бекап і знімок стану, нічого не змінює
 - `scripts/analyze.py <backup-dir>` — звіт: RAM, батарея, звідки встановлені застосунки, звірка з UAD
 - `scripts/disable.sh` / `scripts/restore.sh` — вимкнення / відкат за списком (`PHONE=<ip:port>`)

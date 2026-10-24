@@ -8,6 +8,7 @@ DEV="${1:?usage: collect.sh <ip:port> <device-dir>}"
 DIR="${2:?usage: collect.sh <ip:port> <device-dir>}"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 ADB="${ADB:-$ROOT/platform-tools/adb.exe}"
+[ -x "$ADB" ] || ADB="$ROOT/platform-tools/adb"   # macOS / Linux platform-tools
 [ -x "$ADB" ] || ADB=adb
 export MSYS_NO_PATHCONV=1   # Git Bash would rewrite /data and /proc into Windows paths
 A() { "$ADB" -s "$DEV" shell "$@"; }
