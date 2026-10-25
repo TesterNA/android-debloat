@@ -46,8 +46,8 @@
   Live TV = `com.mitv.livetv`); для інших пристроїв — тема.
 - JDK окремо не потрібен: `JAVA_HOME=C:\Program Files\Android\Android Studio\jbr`. SDK 34 Gradle
   докачує сам.
-- **`power_on_home`** (наша доробка, запропонована в CleanYourTV: https://github.com/Gathin23/cleanyourtv/pull/1445;
-  поки не злито — `patches/power-on-home.patch`): ключ теми / `config.xml` + `HOME_KEY_SERVICE=1`
+- **`power_on_home`** (наша доробка, злита в CleanYourTV 2026-10-25: https://github.com/Gathin23/cleanyourtv/pull/1445;
+  підтверджена й на CHiQ DVB92CQ тієї ж плати): ключ теми / `config.xml` + `HOME_KEY_SERVICE=1`
   (`build-and-install.ps1 -HomeKeyService`). Коли прошивка сама відкриває Live TV (`live_tv_package`) при
   завантаженні (3 хв) або після пробудження (60 с), `HomeKeyService` повертає на Home — до першої кнопки
   пульта. Ігнорується з `boot_to_live_tv` або коли Live TV обрано в Open on start. Перевірено на ERGO:

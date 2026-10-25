@@ -63,8 +63,8 @@ your recommendation, why, and what the user loses. Do not bundle items.
      only where a tested `examples/` list does, otherwise keep it (see `lessons.md`).
    - Custom launcher, optional sub-question: **what should open at power-on** — Home, Live TV or the last
      input? Check what opens now (step 2). Firmware that forces Live TV (Changhong/Homwee) → CleanYourTV
-     key `power_on_home` with `HOME_KEY_SERVICE=1` (upstream PR #1445; until it is merged, apply
-     `patches/power-on-home.patch`); user wants Live TV first → `boot_to_live_tv`. Never both.
+     key `power_on_home` with `HOME_KEY_SERVICE=1` (in CleanYourTV since PR #1445, 2026-10-25); user wants
+     Live TV first → `boot_to_live_tv`. Never both.
 2. **Remote control — core buttons must keep working: Home, Settings, Input/Source.** Not a yes/no question:
    tell the user they will be checked, and after changes ask them to press each. Stock launcher gone → fix
    with the launcher's key services (`HomeKeyService`: Home/Settings, `settings_key_keycodes`;
@@ -126,7 +126,6 @@ known firmware issues (Live TV autostart, packages re-enabling, ACR). UAD-ng des
 - `tools/channels.ps1` — switch off rows on the stock Android TV home screen (`-DryRun` first).
 - `tools/measure.ps1 -TvHost <ip> -Uptime <s> [-Reboot]` — reboot, wait, measure.
 - Screenshot: `screencap -p /sdcard/s.png` → `tv.py --pull` → read → `rm`.
-- CleanYourTV launcher: themes instead of rebuilding, `power_on_home` — see `lessons.md`, `patches/`.
-  Patches target the newest CleanYourTV: first check whether upstream already has the feature
-  (`git -C <CYT> grep -q power_on_home`; PR https://github.com/Gathin23/cleanyourtv/pull/1445) and then use
-  upstream's; otherwise `git -C <CYT> apply --check` and apply.
+- CleanYourTV launcher: themes instead of rebuilding, `power_on_home` (upstream) — see `lessons.md`.
+  `patches/` only holds device config (Xiaomi MOOR2 dock). Before applying a patch, check upstream doesn't
+  already have it, then `git -C <CYT> apply --check`.

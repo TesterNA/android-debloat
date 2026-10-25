@@ -45,8 +45,8 @@ explain to the user (translated into their language).
 - `devices/` — по папці на пристрій: нотатки, копії списків, тема лаунчера.
 - `tools/` — `ui.ps1` (читати екран текстом і тиснути кнопки), `channels.ps1` (вимикати ряди на
   стоковому головному екрані), `measure.ps1` (чесний замір пам'яті після ребута).
-- `patches/` — `power-on-home.patch` (наш ключ `power_on_home`, PR #1445 у CleanYourTV; не потрібен, щойно
-  його злито) і конфіг Xiaomi; `git apply` на свіжий CleanYourTV.
+- `patches/` — конфіг Xiaomi MOOR2 для лаунчера; `git apply` на свіжий CleanYourTV. (Наш ключ `power_on_home`
+  уже в самому CleanYourTV, PR #1445.)
 
 **Не видаляй** локальну копію CleanYourTV (поруч із репозиторієм) і `~\.cleanyourtv` — там
 оригінальні списки і записи для відкату. Наприкінці вимикай «Налагодження USB» (на Mi Box без

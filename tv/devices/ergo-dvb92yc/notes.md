@@ -38,6 +38,6 @@ devicelockcontroller; setupwraith — лише після «забути і пе
 ## Списки (для відкату — ОРИГІНАЛЬНІ шляхи)
 - `<CYT>\ergo-debloat.txt` → `restore.ps1 -TvHost <IP> <він> -Stock com.google.android.tvlauncher`
 - Тема: `<CYT>\ergo-theme` (копія — `theme/`). `<CYT>` — локальна копія CleanYourTV, точні шляхи в `LOCAL.md`.
-- Перевстановлення лаунчера: збірка CleanYourTV з `power_on_home` (upstream, якщо #1445 злито, інакше з
-  `patches/power-on-home.patch`), `build-and-install.ps1 -TvHost <IP> -HomeKeyService`, потім `theme.ps1` з темою
+- Перевстановлення лаунчера: свіжа CleanYourTV (`power_on_home` у ній з 25.10, #1445),
+  `build-and-install.ps1 -TvHost <IP> -HomeKeyService`, потім `theme.ps1` з темою
   (`theme/config.json` уже містить `"power_on_home": true`).
